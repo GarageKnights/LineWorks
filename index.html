@@ -1150,6 +1150,7 @@ if ('serviceWorker' in navigator) {
         localStorage.setItem('ug_prices_v7_7_9', JSON.stringify(COSTS));
         fillPriceInputs();
         applyPrices();
+		estimate();
         document.getElementById('csv_status').textContent = `Updated ${updated} field(s). Saved on device.`;
         document.getElementById('csv_status').className='note good';
       })
