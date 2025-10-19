@@ -1,7 +1,7 @@
 {
-  "name": "Underground Electrical Service Estimator",
-  "short_name": "UG Estimator",
-  "description": "Plan and estimate underground electrical service installations with materials, labor, and voltage drop calculations",
+  "name": "LineWorks Electrical Service Estimator",
+  "short_name": "LineWorks Estimator",
+  "description": "Plan and estimate electrical service installations",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
