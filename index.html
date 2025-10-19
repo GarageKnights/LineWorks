@@ -283,7 +283,7 @@
         <div class="prices-grid">
           <div style="grid-column:1 / -1" class="ctl">
             <label>CSV URL (https://…)</label>
-            <input id="csv_url" placeholder="https://raw.githubusercontent.com/garageknights/LineWorks/main/pricing.csv">
+            <input id="csv_url" value="https://raw.githubusercontent.com/GarageKnights/LineWorks/main/pricing.csv">
             <div id="csv_status" class="note"></div>
             <div class="actions" style="margin:6px 0 2px">
               <button type="button" class="secondary" id="updatePricingBtn">Update Pricing from CSV</button>
@@ -1080,85 +1080,91 @@ if ('serviceWorker' in navigator) {
     estimate();
   });
 
-  bind('updatePricingBtn','click',()=>{
-    const url=(document.getElementById('csv_url')?.value||'').trim();
-    const s=document.getElementById('csv_status');
-    if(!/^https?:\/\//i.test(url)){ s.textContent='Enter a valid https:// URL'; s.className='note err'; return; }
-    fetch(url,{mode:'cors'})
-      .then(r=>r.ok?r.text():Promise.reject(new Error(`HTTP ${r.status}`)))
-      .then(text=>{
-        const lines=text.split(/\\r?\\n/).filter(l=>l.trim().length>0);
-        let updated=0; 
-        lines.forEach((line,i)=>{
-          if(i===0 && /key[,;]/i.test(lines[0])) return;
-          const parts=line.split(/,|;|\\t/); 
-          if(parts.length<2) return;
-          const key=parts[0].trim();
-          const val=parseFloat(parts[1]);
-          if(isNaN(val)) return;
-          const map={
-            "materials.conduit_2_in_per_ft":["materials","conduit_2_in_per_ft"],
-            "materials.conduit_3_in_per_ft":["materials","conduit_3_in_per_ft"],
-            "materials.conduit_4_in_per_ft":["materials","conduit_4_in_per_ft"],
-            "materials.hdpe_2_in_per_ft":["materials","hdpe_2_in_per_ft"],
-            "materials.hdpe_3_in_per_ft":["materials","hdpe_3_in_per_ft"],
-            "materials.hdpe_4_in_per_ft":["materials","hdpe_4_in_per_ft"],
-            "materials.sweeps_each":["materials","sweeps_each"],
-            "materials.couplings_each":["materials","couplings_each"],
-            "materials.primer_and_cement_lump":["materials","primer_and_cement_lump"],
-            "materials.wire_al_2_per_ft":["materials","wire_al_2_per_ft"],
-            "materials.wire_al_1_0_per_ft":["materials","wire_al_1_0_per_ft"],
-            "materials.wire_al_4_0_per_ft":["materials","wire_al_4_0_per_ft"],
-            "materials.wire_al_350_per_ft":["materials","wire_al_350_per_ft"],
-            "materials.wire_al_500_per_ft":["materials","wire_al_500_per_ft"],
-            "materials.pull_string_per_ft":["materials","pull_string_per_ft"],
-            "materials.misc_hardware_lump":["materials","misc_hardware_lump"],
-            "materials.lb_fitting_each":["materials","lb_fitting_each"],
-            "trenching.sawcut_and_restore_per_ft":["trenching","sawcut_and_restore_per_ft"],
-            "materials.bore_per_ft":["materials","bore_per_ft"],
-            "materials.bore_mobilization_lump":["materials","bore_mobilization_lump"],
-            "labor.rate_per_hour":["labor","rate_per_hour"],
-            "labor.trenching_ft_per_hour":["labor","trenching_ft_per_hour"],
-            "labor.backfill_ft_per_hour":["labor","backfill_ft_per_hour"],
-            "labor.conduit_install_ft_per_hour":["labor","conduit_install_ft_per_hour"],
-            "labor.wire_pull_ft_per_hour":["labor","wire_pull_ft_per_hour"],
-            "labor.terminate_hours":["labor","terminate_hours"],
-            "accessories.pedestal_and_connections_lump":["accessories","pedestal_and_connections_lump"],
-            "accessories.pedestal_connections_only_lump":["accessories","pedestal_connections_only_lump"],
-            "accessories.pole_35_5_lump":["accessories","pole_35_5_lump"],
-            "accessories.pole_40_4_lump":["accessories","pole_40_4_lump"],
-            "accessories.riser_3_lump":["accessories","riser_3_lump"],
-            "accessories.riser_4_lump":["accessories","riser_4_lump"],
-            "accessories.xfmr_connections_lump":["accessories","xfmr_connections_lump"],
-            "accessories.primary_riser_lump":["accessories","primary_riser_lump"],
-            "accessories.primary_existing_xfmr_conn_lump":["accessories","primary_existing_xfmr_conn_lump"],
-            "accessories.ug_xfmr_25kva_lump":["accessories","ug_xfmr_25kva_lump"],
-            "accessories.ug_xfmr_50kva_lump":["accessories","ug_xfmr_50kva_lump"],
-            "accessories.ug_xfmr_75kva_lump":["accessories","ug_xfmr_75kva_lump"],
-            "accessories.ug_xfmr_100kva_lump":["accessories","ug_xfmr_100kva_lump"],
-            "accessories.ug_xfmr_167kva_lump":["accessories","ug_xfmr_167kva_lump"],
-            "accessories.oh_xfmr_25kva_lump":["accessories","oh_xfmr_25kva_lump"],
-            "accessories.oh_xfmr_37_5kva_lump":["accessories","oh_xfmr_37_5kva_lump"],
-            "accessories.oh_xfmr_50kva_lump":["accessories","oh_xfmr_50kva_lump"],
-            "accessories.oh_xfmr_75kva_lump":["accessories","oh_xfmr_75kva_lump"],
-            "accessories.oh_xfmr_100kva_lump":["accessories","oh_xfmr_100kva_lump"],
-            "accessories.oh_xfmr_167kva_lump":["accessories","oh_xfmr_167kva_lump"]
-          };
-          const path = map[key];
-          if(path){ COSTS[path[0]][path[1]] = val; updated++; }
-        });
-        localStorage.setItem('ug_prices_v7_7_9', JSON.stringify(COSTS));
-        fillPriceInputs();
-        applyPrices();
-		estimate();
-        document.getElementById('csv_status').textContent = `Updated ${updated} field(s). Saved on device.`;
-        document.getElementById('csv_status').className='note good';
-      })
-      .catch(err=>{
-        s.textContent=String(err.message||err);
-        s.className='note err';
+ bind('updatePricingBtn','click',()=>{
+  const url=(document.getElementById('csv_url')?.value||'').trim();
+  const s=document.getElementById('csv_status');
+  if(!/^https?:\/\//i.test(url)){ 
+    s.textContent='Enter a valid https:// URL'; 
+    s.className='note err'; 
+    return; 
+  }
+  fetch(url,{mode:'cors'})
+    .then(r=>r.ok?r.text():Promise.reject(new Error(`HTTP ${r.status}`)))
+    .then(text=>{
+      // FIX: Remove the double backslashes
+      const lines=text.split(/\r?\n/).filter(l=>l.trim().length>0);
+      let updated=0; 
+      lines.forEach((line,i)=>{
+        if(i===0 && /key[,;]/i.test(lines[0])) return;
+        // FIX: Also fix the escaped sequences in the split regex below
+        const parts=line.split(/,|;|\t/); 
+        if(parts.length<2) return;
+        const key=parts[0].trim();
+        const val=parseFloat(parts[1]);
+        if(isNaN(val)) return;
+        const map={
+          "materials.conduit_2_in_per_ft":["materials","conduit_2_in_per_ft"],
+          "materials.conduit_3_in_per_ft":["materials","conduit_3_in_per_ft"],
+          "materials.conduit_4_in_per_ft":["materials","conduit_4_in_per_ft"],
+          "materials.hdpe_2_in_per_ft":["materials","hdpe_2_in_per_ft"],
+          "materials.hdpe_3_in_per_ft":["materials","hdpe_3_in_per_ft"],
+          "materials.hdpe_4_in_per_ft":["materials","hdpe_4_in_per_ft"],
+          "materials.sweeps_each":["materials","sweeps_each"],
+          "materials.couplings_each":["materials","couplings_each"],
+          "materials.primer_and_cement_lump":["materials","primer_and_cement_lump"],
+          "materials.wire_al_2_per_ft":["materials","wire_al_2_per_ft"],
+          "materials.wire_al_1_0_per_ft":["materials","wire_al_1_0_per_ft"],
+          "materials.wire_al_4_0_per_ft":["materials","wire_al_4_0_per_ft"],
+          "materials.wire_al_350_per_ft":["materials","wire_al_350_per_ft"],
+          "materials.wire_al_500_per_ft":["materials","wire_al_500_per_ft"],
+          "materials.pull_string_per_ft":["materials","pull_string_per_ft"],
+          "materials.misc_hardware_lump":["materials","misc_hardware_lump"],
+          "materials.lb_fitting_each":["materials","lb_fitting_each"],
+          "trenching.sawcut_and_restore_per_ft":["trenching","sawcut_and_restore_per_ft"],
+          "materials.bore_per_ft":["materials","bore_per_ft"],
+          "materials.bore_mobilization_lump":["materials","bore_mobilization_lump"],
+          "labor.rate_per_hour":["labor","rate_per_hour"],
+          "labor.trenching_ft_per_hour":["labor","trenching_ft_per_hour"],
+          "labor.backfill_ft_per_hour":["labor","backfill_ft_per_hour"],
+          "labor.conduit_install_ft_per_hour":["labor","conduit_install_ft_per_hour"],
+          "labor.wire_pull_ft_per_hour":["labor","wire_pull_ft_per_hour"],
+          "labor.terminate_hours":["labor","terminate_hours"],
+          "accessories.pedestal_and_connections_lump":["accessories","pedestal_and_connections_lump"],
+          "accessories.pedestal_connections_only_lump":["accessories","pedestal_connections_only_lump"],
+          "accessories.pole_35_5_lump":["accessories","pole_35_5_lump"],
+          "accessories.pole_40_4_lump":["accessories","pole_40_4_lump"],
+          "accessories.riser_3_lump":["accessories","riser_3_lump"],
+          "accessories.riser_4_lump":["accessories","riser_4_lump"],
+          "accessories.xfmr_connections_lump":["accessories","xfmr_connections_lump"],
+          "accessories.primary_riser_lump":["accessories","primary_riser_lump"],
+          "accessories.primary_existing_xfmr_conn_lump":["accessories","primary_existing_xfmr_conn_lump"],
+          "accessories.ug_xfmr_25kva_lump":["accessories","ug_xfmr_25kva_lump"],
+          "accessories.ug_xfmr_50kva_lump":["accessories","ug_xfmr_50kva_lump"],
+          "accessories.ug_xfmr_75kva_lump":["accessories","ug_xfmr_75kva_lump"],
+          "accessories.ug_xfmr_100kva_lump":["accessories","ug_xfmr_100kva_lump"],
+          "accessories.ug_xfmr_167kva_lump":["accessories","ug_xfmr_167kva_lump"],
+          "accessories.oh_xfmr_25kva_lump":["accessories","oh_xfmr_25kva_lump"],
+          "accessories.oh_xfmr_37_5kva_lump":["accessories","oh_xfmr_37_5kva_lump"],
+          "accessories.oh_xfmr_50kva_lump":["accessories","oh_xfmr_50kva_lump"],
+          "accessories.oh_xfmr_75kva_lump":["accessories","oh_xfmr_75kva_lump"],
+          "accessories.oh_xfmr_100kva_lump":["accessories","oh_xfmr_100kva_lump"],
+          "accessories.oh_xfmr_167kva_lump":["accessories","oh_xfmr_167kva_lump"]
+        };
+        const path = map[key];
+        if(path){ COSTS[path[0]][path[1]] = val; updated++; }
       });
-  });
+      localStorage.setItem('ug_prices_v7_7_9', JSON.stringify(COSTS));
+      fillPriceInputs();
+      applyPrices();
+      estimate();
+      document.getElementById('csv_status').textContent = `Updated ${updated} field(s). Saved on device.`;
+      document.getElementById('csv_status').className='note good';
+    })
+    .catch(err=>{
+      s.textContent=String(err.message||err);
+      s.className='note err';
+    });
+});
 
   const photoInput = document.getElementById('photoInput');
   const btnAddPhoto = document.getElementById('btnAddPhoto');
